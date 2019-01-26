@@ -241,6 +241,7 @@ public class FileConfiguration implements Configuration {
             if (null != configFuture) {
                 if (configFuture.isTimeout()) {
                     setFailResult(configFuture);
+                    return;
                 }
                 if (configFuture.getOperation() == ConfigOperation.GET) {
                     String result = CONFIG.getString(configFuture.getDataId());
