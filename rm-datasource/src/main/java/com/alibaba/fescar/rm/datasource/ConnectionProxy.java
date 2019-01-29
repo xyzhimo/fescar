@@ -34,24 +34,50 @@ import com.google.common.base.Joiner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * The type Connection proxy.
+ */
 public class ConnectionProxy extends AbstractConnectionProxy {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ConnectionProxy.class);
 
     private ConnectionContext context = new ConnectionContext();
 
+    /**
+     * Instantiates a new Connection proxy.
+     *
+     * @param dataSourceProxy  the data source proxy
+     * @param targetConnection the target connection
+     * @param dbType           the db type
+     */
     public ConnectionProxy(DataSourceProxy dataSourceProxy, Connection targetConnection, String dbType) {
         super(dataSourceProxy, targetConnection, dbType);
     }
 
+    /**
+     * Gets context.
+     *
+     * @return the context
+     */
     public ConnectionContext getContext() {
         return context;
     }
 
+    /**
+     * Bind.
+     *
+     * @param xid the xid
+     */
     public void bind(String xid) {
         context.bind(xid);
     }
 
+    /**
+     * Check lock.
+     *
+     * @param records the records
+     * @throws SQLException the sql exception
+     */
     public void checkLock(TableRecords records) throws SQLException {
         // Just check lock without requiring lock by now.
         String lockKeys = buildLockKey(records);
@@ -64,6 +90,13 @@ public class ConnectionProxy extends AbstractConnectionProxy {
             recognizeLockKeyConflictException(e);
         }
     }
+
+    /**
+     * Register.
+     *
+     * @param records the records
+     * @throws SQLException the sql exception
+     */
     public void register(TableRecords records) throws SQLException {
         // Just check lock without requiring lock by now.
         String lockKeys = buildLockKey(records);
@@ -83,11 +116,20 @@ public class ConnectionProxy extends AbstractConnectionProxy {
 
     }
 
+    /**
+     * Prepare undo log.
+     *
+     * @param sqlType     the sql type
+     * @param tableName   the table name
+     * @param beforeImage the before image
+     * @param afterImage  the after image
+     * @throws SQLException the sql exception
+     */
     public void prepareUndoLog(SQLType sqlType, String tableName, TableRecords beforeImage, TableRecords afterImage) throws SQLException {
         if(beforeImage.getRows().size() == 0 && afterImage.getRows().size() == 0) {
             return;
-            }
-        
+        }
+
         TableRecords lockKeyRecords = afterImage;
         if (sqlType == SQLType.DELETE) {
             lockKeyRecords = beforeImage;
@@ -148,7 +190,7 @@ public class ConnectionProxy extends AbstractConnectionProxy {
             }
 
             try {
-                if (context.hasUndoLog()) { 
+                if (context.hasUndoLog()) {
                     UndoLogManager.flushUndoLogs(this);
                 }
                 targetConnection.commit();
@@ -162,7 +204,7 @@ public class ConnectionProxy extends AbstractConnectionProxy {
             }
             report(true);
             context.reset();
-        	
+
         } else {
             targetConnection.commit();
         }
@@ -183,7 +225,7 @@ public class ConnectionProxy extends AbstractConnectionProxy {
             if (context.isBranchRegistered()) {
                 report(false);
             }}
-            context.reset();
+        context.reset();
     }
 
     @Override
@@ -200,7 +242,7 @@ public class ConnectionProxy extends AbstractConnectionProxy {
         while (retry > 0) {
             try {
                 DataSourceManager.get().branchReport(context.getXid(), context.getBranchId(),
-                        (commitDone ? BranchStatus.PhaseOne_Done : BranchStatus.PhaseOne_Failed), null);
+                    (commitDone ? BranchStatus.PhaseOne_Done : BranchStatus.PhaseOne_Failed), null);
                 return;
             } catch (Throwable ex) {
                 LOGGER.error("Failed to report [" + context.getBranchId() + "/" + context.getXid() + "] commit done [" + commitDone + "] Retry Countdown: " + retry);

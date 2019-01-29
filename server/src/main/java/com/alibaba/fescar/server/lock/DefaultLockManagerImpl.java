@@ -29,6 +29,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * The type Default lock manager.
+ */
 public class DefaultLockManagerImpl implements LockManager {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DefaultLockManagerImpl.class);
