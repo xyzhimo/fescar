@@ -16,19 +16,18 @@
 
 package com.alibaba.fescar.server.lock;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-
 import com.alibaba.fescar.common.exception.ShouldNeverHappenException;
 import com.alibaba.fescar.common.util.StringUtils;
 import com.alibaba.fescar.core.exception.TransactionException;
 import com.alibaba.fescar.server.session.BranchSession;
-
 import io.netty.util.internal.ConcurrentSet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class DefaultLockManagerImpl implements LockManager {
 
@@ -36,7 +35,16 @@ public class DefaultLockManagerImpl implements LockManager {
 
     private static final int BUCKET_PER_TABLE = 128;
 
-    private static final ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<Integer, Map<String, Long>>>> LOCK_MAP = new ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<Integer, Map<String, Long>>>>();
+    /**
+     * the first key is resourceId,
+     * the second key is tableName,
+     * the third key is the pk.hashcode % 128,
+     * the fourth key is the pk.
+     * the fourth value is the transactionKey
+     */
+    private static final ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<Integer, Map<String,
+            Long>>>> LOCK_MAP = new ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<Integer,
+            Map<String, Long>>>>();
 
     @Override
     public boolean acquireLock(BranchSession branchSession) throws TransactionException {
@@ -44,17 +52,18 @@ public class DefaultLockManagerImpl implements LockManager {
         long transactionId = branchSession.getTransactionId();
         ConcurrentHashMap<String, ConcurrentHashMap<Integer, Map<String, Long>>> dbLockMap = LOCK_MAP.get(resourceId);
         if (dbLockMap == null) {
-            LOCK_MAP.putIfAbsent(resourceId, new ConcurrentHashMap<String, ConcurrentHashMap<Integer, Map<String, Long>>>());
+            LOCK_MAP.putIfAbsent(resourceId, new ConcurrentHashMap<String, ConcurrentHashMap<Integer, Map<String,
+                    Long>>>());
             dbLockMap = LOCK_MAP.get(resourceId);
         }
         ConcurrentHashMap<Map<String, Long>, Set<String>> bucketHolder = branchSession.getLockHolder();
-        
+
         String lockKey = branchSession.getLockKey();
-        if(StringUtils.isEmpty(lockKey)) {
+        if (StringUtils.isEmpty(lockKey)) {
             return true;
         }
-        
-            String[] tableGroupedLockKeys = lockKey.split(";");
+
+        String[] tableGroupedLockKeys = lockKey.split(";");
         for (String tableGroupedLockKey : tableGroupedLockKeys) {
             int idx = tableGroupedLockKey.indexOf(":");
             if (idx < 0) {

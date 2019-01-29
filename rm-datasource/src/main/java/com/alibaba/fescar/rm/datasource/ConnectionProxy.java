@@ -30,6 +30,7 @@ import com.alibaba.fescar.rm.datasource.sql.struct.TableRecords;
 import com.alibaba.fescar.rm.datasource.undo.SQLUndoLog;
 import com.alibaba.fescar.rm.datasource.undo.UndoLogManager;
 
+import com.google.common.base.Joiner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -91,7 +92,9 @@ public class ConnectionProxy extends AbstractConnectionProxy {
         if (sqlType == SQLType.DELETE) {
             lockKeyRecords = beforeImage;
         }
+        // 创建锁key的字符串
         String lockKeys = buildLockKey(lockKeyRecords);
+        // 将锁key的字符串放入内存中
         context.appendLockKey(lockKeys);
         SQLUndoLog sqlUndoLog = buildUndoItem(sqlType, tableName, beforeImage, afterImage);
         context.appendUndoItem(sqlUndoLog);
@@ -106,6 +109,15 @@ public class ConnectionProxy extends AbstractConnectionProxy {
         return sqlUndoLog;
     }
 
+    /**
+     * description: create the lock key by table records.
+     * the table records with the table name and the : symbol, and the pk field values with the , symbol combine
+     * eg, the tableName is tb_account, the rows with the pk fields(id=13,id=14,id=15).the lockKey is tb_account:13,14,15
+     *
+     * @param rowsIncludingPK tableRecords include tableName and rows with the PK
+     *
+     * @return the lock key by table records
+     */
     private String buildLockKey(TableRecords rowsIncludingPK) {
         if (rowsIncludingPK.size() == 0) {
             return null;
@@ -157,7 +169,9 @@ public class ConnectionProxy extends AbstractConnectionProxy {
     }
 
     private void register() throws TransactionException {
+
         Long branchId = DataSourceManager.get().branchRegister(BranchType.AT, getDataSourceProxy().getResourceId(),
+                // 冲刷lock key的字符串
                 null, context.getXid(), context.buildLockKeys());
         context.setBranchId(branchId);
     }

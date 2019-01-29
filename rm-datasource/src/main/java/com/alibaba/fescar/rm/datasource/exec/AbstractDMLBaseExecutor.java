@@ -16,16 +16,15 @@
 
 package com.alibaba.fescar.rm.datasource.exec;
 
-import java.sql.SQLException;
-import java.sql.Statement;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.alibaba.fescar.rm.datasource.AbstractConnectionProxy;
 import com.alibaba.fescar.rm.datasource.StatementProxy;
 import com.alibaba.fescar.rm.datasource.sql.SQLRecognizer;
 import com.alibaba.fescar.rm.datasource.sql.struct.TableRecords;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.sql.SQLException;
+import java.sql.Statement;
 
 public abstract class AbstractDMLBaseExecutor<T, S extends Statement> extends BaseTransactionalExecutor<T, S> {
 
@@ -45,6 +44,14 @@ public abstract class AbstractDMLBaseExecutor<T, S extends Statement> extends Ba
         }
     }
 
+    /**
+     * description: 如果自动提交是关闭的话
+     *
+     * @param args
+     * @return T
+     * @author: xyz
+     * @create: 2019-01-28
+     */
     protected T executeAutoCommitFalse(Object[] args) throws Throwable {
         TableRecords beforeImage = beforeImage();
         T result = statementCallback.execute(statementProxy.getTargetStatement(), args);
@@ -53,6 +60,14 @@ public abstract class AbstractDMLBaseExecutor<T, S extends Statement> extends Ba
         return result;
     }
 
+    /**
+     * description: 如果自动提交是开启的状态，也要先关闭自动提交。
+     *
+     * @param args
+     * @return T
+     * @author: xyz
+     * @create: 2019-01-29
+     */
     protected T executeAutoCommitTrue(Object[] args) throws Throwable {
         T result = null;
         AbstractConnectionProxy connectionProxy = statementProxy.getConnectionProxy();
@@ -73,8 +88,7 @@ public abstract class AbstractDMLBaseExecutor<T, S extends Statement> extends Ba
             // when exception occur in finally,this exception will lost, so just print it here
             LOGGER.error("exception occur", e);
             throw e;
-        } 
-        finally {
+        } finally {
             connectionProxy.setAutoCommit(true);
         }
         return result;

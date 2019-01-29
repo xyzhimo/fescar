@@ -58,6 +58,7 @@ public class DefaultCore implements Core {
 
         BranchSession branchSession = new BranchSession();
         branchSession.setTransactionId(XID.getTransactionId(xid));
+        // 生成branchId，放入branchSession中
         branchSession.setBranchId(UUIDGenerator.generateUUID());
         branchSession.setApplicationId(globalSession.getApplicationId());
         branchSession.setTxServiceGroup(globalSession.getTransactionServiceGroup());
@@ -66,6 +67,7 @@ public class DefaultCore implements Core {
         branchSession.setLockKey(lockKeys);
         branchSession.setClientId(clientId);
 
+        // 抢占分支注册锁
         if (!branchSession.lock()) {
             throw new TransactionException(LockKeyConflict);
         }
