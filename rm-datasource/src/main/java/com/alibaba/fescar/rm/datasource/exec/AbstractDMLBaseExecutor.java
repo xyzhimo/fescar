@@ -75,7 +75,7 @@ public abstract class AbstractDMLBaseExecutor<T, S extends Statement> extends Ba
         TableRecords beforeImage = beforeImage();
         T result = statementCallback.execute(statementProxy.getTargetStatement(), args);
         TableRecords afterImage = afterImage(beforeImage);
-        statementProxy.getConnectionProxy().prepareUndoLog(sqlRecognizer.getSQLType(), sqlRecognizer.getTableName(), beforeImage, afterImage);
+        prepareUndoLog(beforeImage, afterImage);
         return result;
     }
 
@@ -99,6 +99,7 @@ public abstract class AbstractDMLBaseExecutor<T, S extends Statement> extends Ba
                     connectionProxy.commit();
                     break;
                 } catch (LockConflictException lockConflict) {
+                    connectionProxy.getTargetConnection().rollback();
                     lockRetryController.sleep(lockConflict);
                 }
             }
